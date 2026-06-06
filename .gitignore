@@ -1,0 +1,22 @@
+# macOS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# MATLAB specific
+*.asv
+*.m~
+*.mat
+slprj/
+*.mex*
+*.mexmaci64
+*.slxc
+
+# Project output / Data files
+# 如果你不想将生成的代码运行结果（如大规模csv或json数据）提交到 Git，可以取消下方注释
+*.csv
+*.json
+acc_fluidstability-1.1/Data/
+Figures/
