@@ -43,9 +43,10 @@ lambda_by_pair = zeros(n_m0, n_pairs);
 if use_parallel
     n_workers = gcp('nocreate').NumWorkers;
     fprintf('  Parallel: %d iterations on %d workers.\n', n_pairs, n_workers);
+    interval = max(1, round(n_pairs / 20));
+    state    = containers.Map({'done', 'n', 't0'}, {0, n_pairs, tic});
     q = parallel.pool.DataQueue;
-    report_interval = max(1, round(n_pairs / 40));
-    afterEach(q, @(~) fprintf('.'));
+    afterEach(q, @(~) report_progress(state, interval));
 
     parfor pi = 1:n_pairs
         k_val = K_flat(pi);
@@ -55,7 +56,7 @@ if use_parallel
             col(mj) = floquet_core(k_val, m0_vec(mj), l_val, p, n_steps);
         end
         lambda_by_pair(:, pi) = col;
-        if mod(pi, report_interval) == 0
+        if mod(pi, interval) == 0
             send(q, pi);
         end
     end
