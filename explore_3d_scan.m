@@ -128,7 +128,7 @@ for ti = 1:size(test_points, 1)
     set(gca, 'FontSize', 14);
     xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 22);
     ylabel('$m_0$', 'Interpreter', 'latex', 'FontSize', 22);
-    ylim([0 1.2]);
+    ylim([0 1.5]);
     colormap('jet');
     clim([-4, max(-1, max(data(:)))]);
     cb = colorbar;
