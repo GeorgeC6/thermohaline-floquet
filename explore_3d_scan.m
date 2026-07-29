@@ -10,6 +10,7 @@ close all; clear; clc;
 fprintf('===== 3-D Exploration for Selected (Ri, ω) =====\n');
 
 %% -------------------- user settings --------------------
+f_val = 0.1;       % Coriolis parameter (0 or 0.1)
 n_k     = 51;
 n_m0    = 51;
 n_l     = 51;
@@ -18,20 +19,27 @@ n_steps = 1000;
 % Wavenumber ranges
 k_vec  = linspace(-0.5, 0.5, n_k);
 m0_vec = linspace(0, 1.5, n_m0);
-l_vec  = linspace(0, 0.3, n_l);   % wider l than plot_slices to check for shifts
 
-% Test points: (Ri, ω) — corners of parameter space
+if f_val == 0
+    l_vec = linspace(0, 0.15, n_l);     % positive only (symmetric about l=0)
+else
+    l_vec = linspace(-0.3, 0.3, n_l);   % both signs (l-symmetry broken)
+end
+
+% Test points: (Ri, ω)
 test_points = [
-    1.0, 0.1;    % low Ri,  low ω
-    1.0, 0.5;    % low Ri,  mid ω
-    1.0, 0.8;    % low Ri,  high ω
-    5.0, 0.1;    % mid Ri,  low ω
-    5.0, 0.8;    % mid Ri,  high ω
-    9.0, 0.1;    % high Ri, low ω
-    9.0, 0.8;    % high Ri, high ω
+    % 1.0, 0.1;    % low Ri,  low ω
+    % 1.0, 0.5;    % low Ri,  mid ω
+    % 1.0, 0.8;    % low Ri,  high ω
+    1.0, 3;    % low Ri,  high ω
+    % 3.0, 0.1;    % mid Ri,  low ω
+    % 3.0, 0.3;    % mid Ri,  low ω
+    % 3.0, 0.5;    % mid Ri,  mid ω
+    % 3.0, 0.8;    % mid Ri,  high ω
+    % 5.0, 0.1;    % high Ri, low ω
+    % 5.0, 0.5;    % high Ri,  mid ω
+    % 5.0, 0.8;    % high Ri, high ω
 ];
-
-f_val = 0;  % 2-D → 3-D extension, no Coriolis
 
 %% ==================== loop over test points ====================
 for ti = 1:size(test_points, 1)
@@ -45,7 +53,7 @@ for ti = 1:size(test_points, 1)
     fprintf('  au = %.4f, av = %.4f, T = %.4f\n', p.au, p.av, p.T);
 
     % --- output directory ---
-    out_dir = fullfile('Figures', 'Explore3D', sprintf('Ri%.1f_omega%.2f', Ri_val, omega_val));
+    out_dir = fullfile('Figures', 'Explore3D', sprintf('f_%.3f', f_val), sprintf('Ri%.1f_omega%.2f', Ri_val, omega_val));
     if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 
     % --- compute 3-D grid ---
@@ -58,19 +66,15 @@ for ti = 1:size(test_points, 1)
     fprintf('  Max λ = %.6f  at k=%.4f, m0=%.4f, l=%.4f\n', ...
         max_all, k_vec(ki), m0_vec(m0i), l_vec(li));
 
-    % Compare with l=0 slice
-    lambda_l0 = lambda_3d(:, :, 1);  % first l index = l=0
-    max_l0 = max(lambda_l0(:));
-    [m0i_l0, ki_l0] = find(lambda_l0 == max_l0, 1);
-    fprintf('  Max at l=0:  λ = %.6f  at k=%.4f, m0=%.4f\n', ...
-        max_l0, k_vec(ki_l0), m0_vec(m0i_l0));
-    fprintf('  3-D / l=0 ratio: %.4f  (diff: %+.6f)\n', max_all / max(max_l0, 1e-12), max_all - max_l0);
-
-    % Check if max is at edge of l-range (may need wider range)
+    % Check if max is at edge of l-range
     if li == 1
-        fprintf('  ⚠ Max at l=0 (left edge of l-range).\n');
+        if f_val == 0
+            fprintf('  Max at l=0 (expected for f=0 — symmetric about l=0).\n');
+        else
+            fprintf('  ⚠ Max at l=%.4f (left edge — consider widening l range).\n', l_vec(li));
+        end
     elseif li == n_l
-        fprintf('  ⚠ Max at l=%.4f (RIGHT EDGE — consider widening l range).\n', l_vec(li));
+        fprintf('  ⚠ Max at l=%.4f (right edge — consider widening l range).\n', l_vec(li));
     end
 
     % Check if max is at edge of k-range
@@ -82,7 +86,7 @@ for ti = 1:size(test_points, 1)
     fprintf('  Rendering isosurface...\n');
 
     [K_mg, L_mg, M0_mg] = ndgrid(k_vec, l_vec, m0_vec);
-    V = permute(lambda_3d, [2, 3, 1]);
+    V = permute(lambda_3d, [2, 3, 1]);  % (n_k, n_l, n_m0) — matches ndgrid
 
     iso_vals  = [0.20, 0.50, 0.85] * max_all;
     colors    = {[0.2 0.4 1.0], [0.0 0.7 0.9], [1.0 0.7 0.1]};

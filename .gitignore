@@ -18,6 +18,11 @@ slprj/
 # 如果你不想将生成的代码运行结果（如大规模csv或json数据）提交到 Git，可以取消下方注释
 *.csv
 *.json
-acc_fluidstability-1.1/Data/
+acc_fluidstability-1.1/
 Figures/
 Paper/
+Draft/
+
+# Claude Code specific
+.claude/
+CLAUDE.md

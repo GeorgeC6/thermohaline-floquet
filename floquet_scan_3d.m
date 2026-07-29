@@ -15,17 +15,22 @@ function lambda_3d = floquet_scan_3d(p, k_vec, m0_vec, l_vec, n_steps, save_path
 %
 %   lambda_3d   (n_m0, n_k, n_l) array of growth rates (≥ 0).
 
+n_k  = length(k_vec);
+n_m0 = length(m0_vec);
+n_l  = length(l_vec);
+
 % --- load cached data if available ---
 if exist(save_path, 'file')
     fprintf('  Loading cached data from %s ...\n', save_path);
     ld = load(save_path, 'lambda_3d');
     lambda_3d = ld.lambda_3d;
-    return;
+    % Verify dimensions match current grid
+    if isequal(size(lambda_3d), [n_m0, n_k, n_l])
+        return;
+    else
+        fprintf('  Cache dimensions mismatch — recomputing.\n');
+    end
 end
-
-n_k  = length(k_vec);
-n_m0 = length(m0_vec);
-n_l  = length(l_vec);
 
 % --- flattened (k, l) grid: ndgrid so k varies fastest → matches reshape ---
 [K_flat, L_flat] = ndgrid(k_vec, l_vec);   % n_k × n_l

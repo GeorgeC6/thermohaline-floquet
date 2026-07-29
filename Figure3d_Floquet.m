@@ -28,7 +28,7 @@ fprintf('Grid: %d × %d = %d points, %d time steps.\n', ...
     n_samples, n_samples, n_samples^2, n_steps);
 
 %% -------------------- output directory --------------------
-out_dir = fullfile('Figures', 'Figure3d');
+out_dir = fullfile('Figures', 'Figure3d', sprintf('f_%.3f', f_val));
 if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 
 %% -------------------- compute & save data --------------------
