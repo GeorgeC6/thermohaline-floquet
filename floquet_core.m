@@ -21,10 +21,25 @@ Av_t = zeros(size(t_list));
 
 for i = 1:length(t_list)
     t = t_list(i);
-    Au_t(i) = p.au * sin(p.omega * t + pi/2);          % = p.au * cos(ωt)
-    Av_t(i) = p.av * cos(p.omega * t + pi/2);          % = -p.av * sin(ωt)
-    Bu_t    = (p.au / p.omega) * sin(p.omega * t);     % ∫ cos = sin/ω
-    Bv_t    = (p.av / p.omega) * (cos(p.omega * t) - 1); % ∫(-sin) = (cos-1)/ω
+
+    % --- time-dependent shear coefficients ---
+    if isfield(p, 'au2') && p.au2 ~= 0
+        % Multi-color: fundamental (ω) + second harmonic (2ω)
+        Au_t(i) = p.au  * sin(p.omega * t + pi/2) ...
+                + p.au2 * sin(2*p.omega * t + pi/2);          % = p.au*cos(ωt) + p.au2*cos(2ωt)
+        Av_t(i) = p.av  * cos(p.omega * t + pi/2) ...
+                + p.av2 * cos(2*p.omega * t + pi/2);          % = -p.av*sin(ωt) - p.av2*sin(2ωt)
+        Bu_t    = (p.au  / p.omega)     * sin(p.omega * t) ...
+                + (p.au2 / (2*p.omega)) * sin(2*p.omega * t);
+        Bv_t    = (p.av  / p.omega)     * (cos(p.omega * t) - 1) ...
+                + (p.av2 / (2*p.omega)) * (cos(2*p.omega * t) - 1);
+    else
+        % Single-frequency (original)
+        Au_t(i) = p.au * sin(p.omega * t + pi/2);          % = p.au * cos(ωt)
+        Av_t(i) = p.av * cos(p.omega * t + pi/2);          % = -p.av * sin(ωt)
+        Bu_t    = (p.au / p.omega) * sin(p.omega * t);     % ∫ cos = sin/ω
+        Bv_t    = (p.av / p.omega) * (cos(p.omega * t) - 1); % ∫(-sin) = (cos-1)/ω
+    end
     m_t(i)  = m0 - Bu_t * k - Bv_t * l;
     c_t(i)  = k^2 + l^2 + m_t(i)^2;
 end

@@ -17,7 +17,6 @@ n_steps = 1000;
 
 k_vec  = linspace(-0.5, 0.5, n_k);
 m0_vec = linspace(0, 1.5, n_m0);
-l_vec  = linspace(0, 0.2, n_l);
 
 f_vals = [0, 0.1];
 
@@ -30,6 +29,13 @@ for fi = 1:length(f_vals)
     p = floquet_params(f_val);
 
     fprintf('\n===== f = %.1f | au = %.4f | av = %.4f =====\n', f_val, p.au, p.av);
+
+    % l-vector: f-dependent
+    if f_val == 0
+        l_vec = linspace(0, 0.3, n_l);      % positive only (symmetric)
+    else
+        l_vec = linspace(-0.3, 0.3, n_l);    % both signs
+    end
 
     %% -------- output directories --------
     task_dir = fullfile('Figures', 'Slices', sprintf('f_%.3f', f_val));

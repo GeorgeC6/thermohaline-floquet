@@ -10,9 +10,9 @@ close all; clear; clc;
 fprintf('===== ω-scan: λmax(ω) for fixed Ri =====\n');
 
 %% -------------------- user settings --------------------
-f_val    = 0;         % Coriolis parameter
-Ri_vals  = [0.1, 0.25, 1, 2, 3];  % fixed Ri values
-n_omega  = 200;       % ω grid points
+f_val    = 0.1;         % Coriolis parameter
+Ri_vals  = 0.25;  % fixed Ri values
+n_omega  = 100;       % ω grid points
 omega_min = 0.01;
 omega_max = 7;
 n_k      = 51;        % k wavenumber grid for max search

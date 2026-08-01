@@ -11,6 +11,9 @@ function setup_datatip(fig)
 %     'lines'    line plot with multiple curves (e.g. omega_scan_curves)
 %         Required fields: Ri_vals, omega_vec, lambda_max, h_lines
 %
+%     'eta_scan' λmax vs η line plot (e.g. eta_scan_curves)
+%         Required fields: eta_vec, lambda_max
+%
 %   Usage in calling script:
 %       set(gcf, 'UserData', struct('type', 'heatmap', ...));
 %       set(gcf, 'CreateFcn', 'setup_datatip(gcf)');
@@ -27,6 +30,8 @@ switch ud.type
         dcm.UpdateFcn = @(obj, evt) show_heatmap(evt, ud);
     case 'lines'
         dcm.UpdateFcn = @(obj, evt) show_lines(evt, ud);
+    case 'eta_scan'
+        dcm.UpdateFcn = @(obj, evt) show_eta_scan(evt, ud);
     otherwise
         return;
 end
@@ -62,4 +67,12 @@ else
            ['\omega: ', num2str(ud.omega_vec(oi), '%.4f')], ...
            ['\lambda_{max}: ', num2str(ud.lambda_max(oi, ri), '%.6f')]};
 end
+end
+
+%% -------------------- eta scan (single line) --------------------
+function txt = show_eta_scan(event_obj, ud)
+pos = event_obj.Position;
+[~, ei] = min(abs(ud.eta_vec - pos(1)));
+txt = {['\eta: ', num2str(ud.eta_vec(ei), '%.4f')], ...
+       ['\lambda_{max}: ', num2str(ud.lambda_max(ei), '%.6f')]};
 end

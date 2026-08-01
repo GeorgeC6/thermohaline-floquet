@@ -20,8 +20,8 @@ n_m0     = 51;        % m0 grid for max search
 n_l      = 21;        % l wavenumber grid
 n_steps  = 1000;      % time steps per period
 
-Ri_vec    = linspace(0.1, 10, n_Ri);
-omega_vec = linspace(0.1, 10, n_omega);
+Ri_vec    = linspace(0.1, 20, n_Ri);
+omega_vec = linspace(0.1, 6.5, n_omega);
 k_vec     = linspace(-0.5, 0.5, n_k);
 m0_vec    = linspace(0, 1.5, n_m0);
 l_vec     = linspace(-0.03, 0.03, n_l);

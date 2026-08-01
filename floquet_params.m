@@ -19,6 +19,7 @@ omega = 0.5;
 tau   = 0.01;
 
 %% --- parse optional name-value overrides ---
+eta = 0;  % second-harmonic amplitude ratio (0 = single-frequency)
 for i = 1:2:(length(varargin) - 1)
     name  = varargin{i};
     value = varargin{i + 1};
@@ -28,6 +29,7 @@ for i = 1:2:(length(varargin) - 1)
         case 'pr',    Pr    = value;
         case 'omega', omega = value;
         case 'tau',   tau   = value;
+        case 'eta',   eta   = value;
         otherwise
             warning('floquet_params: unknown parameter "%s"', name);
     end
@@ -40,4 +42,11 @@ amp = sqrt(2 * Pr * (Rp - 1) / (Ri * (f_val^2 + omega^2)));
 p = struct('Ri', Ri, 'Rp', Rp, 'Pr', Pr, 'omega', omega, 'tau', tau, ...
            'f', f_val, 'T', T, 'amp', amp, ...
            'au', amp * omega, 'av', amp * f_val);
+
+% --- second harmonic (multi-color shear) ---
+if eta > 0
+    amp2 = sqrt(2 * Pr * (Rp - 1) / (Ri * (f_val^2 + (2*omega)^2)));
+    p.au2 = eta * amp2 * (2 * omega);
+    p.av2 = eta * amp2 * f_val;
+end
 end

@@ -1,16 +1,17 @@
 % explore_3d_scan.m
-% Quick exploration: 3-D (k, l, m0) Floquet isosurfaces for selected (Ri, ω)
-% pairs.  Used to determine wavenumber ranges for Figure 4 upgrade to 3-D.
+% 3-D (k, l, m0) Floquet isosurfaces for selected (Ri, ω) pairs.
+% Optionally scans η (second-harmonic amplitude) at each (Ri, ω).
 %
-% If the max λ always occurs at l=0, then the 2-D (k, m0) sweep is sufficient.
-% If it shifts to l ≠ 0 for some (Ri, ω), we need full 3-D in Figure4_Radko.m.
+% Directory structure:
+%   Figures/Explore3D/f_X.XXX/RiX.X_omegaX.XX/           ← η = 0 (single-freq)
+%   Figures/Explore3D/f_X.XXX/RiX.X_omegaX.XX/eta_X.XXX/ ← η > 0
 
 close all; clear; clc;
 
-fprintf('===== 3-D Exploration for Selected (Ri, ω) =====\n');
+fprintf('===== 3-D Exploration =====\n');
 
 %% -------------------- user settings --------------------
-f_val = 0.1;       % Coriolis parameter (0 or 0.1)
+f_val = 0;       % Coriolis parameter (0 or 0.1)
 n_k     = 51;
 n_m0    = 51;
 n_l     = 51;
@@ -21,7 +22,7 @@ k_vec  = linspace(-0.5, 0.5, n_k);
 m0_vec = linspace(0, 1.5, n_m0);
 
 if f_val == 0
-    l_vec = linspace(0, 0.15, n_l);     % positive only (symmetric about l=0)
+    l_vec = linspace(0, 0.3, n_l);     % positive only (symmetric about l=0)
 else
     l_vec = linspace(-0.3, 0.3, n_l);   % both signs (l-symmetry broken)
 end
@@ -31,7 +32,8 @@ test_points = [
     % 1.0, 0.1;    % low Ri,  low ω
     % 1.0, 0.5;    % low Ri,  mid ω
     % 1.0, 0.8;    % low Ri,  high ω
-    1.0, 3;    % low Ri,  high ω
+    % 1.0, 3;      % low Ri,  high ω
+    2.0, 0.5;      % Default params
     % 3.0, 0.1;    % mid Ri,  low ω
     % 3.0, 0.3;    % mid Ri,  low ω
     % 3.0, 0.5;    % mid Ri,  mid ω
@@ -41,112 +43,147 @@ test_points = [
     % 5.0, 0.8;    % high Ri, high ω
 ];
 
+% Multi-color η scan (scalar 0 = single-frequency; list for scanning)
+eta_vec = [0, 0.5, 1, 1.5];       % e.g. 0 or [0, 0.5, 1, 1.5]
+
 %% ==================== loop over test points ====================
 for ti = 1:size(test_points, 1)
     Ri_val    = test_points(ti, 1);
     omega_val = test_points(ti, 2);
 
-    fprintf('\n===== Ti=%d: Ri=%.1f, ω=%.2f =====\n', ti, Ri_val, omega_val);
+    % --- loop over eta values ---
+    for ei = 1:length(eta_vec)
+        eta = eta_vec(ei);
 
-    % --- parameter struct ---
-    p = floquet_params(f_val, 'Ri', Ri_val, 'omega', omega_val);
-    fprintf('  au = %.4f, av = %.4f, T = %.4f\n', p.au, p.av, p.T);
-
-    % --- output directory ---
-    out_dir = fullfile('Figures', 'Explore3D', sprintf('f_%.3f', f_val), sprintf('Ri%.1f_omega%.2f', Ri_val, omega_val));
-    if ~exist(out_dir, 'dir'), mkdir(out_dir); end
-
-    % --- compute 3-D grid ---
-    data_path = fullfile(out_dir, 'lambda_3d.mat');
-    lambda_3d = floquet_scan_3d(p, k_vec, m0_vec, l_vec, n_steps, data_path);
-
-    % --- analysis ---
-    [max_all, idx] = max(lambda_3d(:));
-    [m0i, ki, li] = ind2sub(size(lambda_3d), idx);
-    fprintf('  Max λ = %.6f  at k=%.4f, m0=%.4f, l=%.4f\n', ...
-        max_all, k_vec(ki), m0_vec(m0i), l_vec(li));
-
-    % Check if max is at edge of l-range
-    if li == 1
-        if f_val == 0
-            fprintf('  Max at l=0 (expected for f=0 — symmetric about l=0).\n');
+        if eta > 0
+            fprintf('\n===== Ti=%d: Ri=%.1f, ω=%.2f, η=%.3f (%d/%d) =====\n', ...
+                ti, Ri_val, omega_val, eta, ei, length(eta_vec));
         else
-            fprintf('  ⚠ Max at l=%.4f (left edge — consider widening l range).\n', l_vec(li));
+            fprintf('\n===== Ti=%d: Ri=%.1f, ω=%.2f =====\n', ti, Ri_val, omega_val);
         end
-    elseif li == n_l
-        fprintf('  ⚠ Max at l=%.4f (right edge — consider widening l range).\n', l_vec(li));
-    end
 
-    % Check if max is at edge of k-range
-    if ki == 1 || ki == n_k
-        fprintf('  ⚠ Max at k-edge (k=%.4f) — consider widening k range.\n', k_vec(ki));
-    end
-
-    % --- 3-D isosurface ---
-    fprintf('  Rendering isosurface...\n');
-
-    [K_mg, L_mg, M0_mg] = ndgrid(k_vec, l_vec, m0_vec);
-    V = permute(lambda_3d, [2, 3, 1]);  % (n_k, n_l, n_m0) — matches ndgrid
-
-    iso_vals  = [0.20, 0.50, 0.85] * max_all;
-    colors    = {[0.2 0.4 1.0], [0.0 0.7 0.9], [1.0 0.7 0.1]};
-    alphas    = [0.15, 0.45, 0.85];
-
-    fig = figure('Visible', 'on', 'Units', 'inches', 'Position', [1 1 10 8]);
-    hold on;
-
-    for i = 1:3
-        if iso_vals(i) > 0
-            fv = isosurface(K_mg, L_mg, M0_mg, V, iso_vals(i));
-            pa = patch(fv);
-            pa.FaceColor = colors{i};
-            pa.EdgeColor = 'none';
-            pa.FaceAlpha = alphas(i);
+        % --- parameter struct ---
+        p = floquet_params(f_val, 'Ri', Ri_val, 'omega', omega_val, 'eta', eta);
+        if eta > 0
+            fprintf('  au1 = %.4f, av1 = %.4f, au2 = %.4f, av2 = %.4f, T = %.4f\n', ...
+                p.au, p.av, p.au2, p.av2, p.T);
+        else
+            fprintf('  au = %.4f, av = %.4f, T = %.4f\n', p.au, p.av, p.T);
         end
-    end
 
-    camlight('headlight');
-    lighting gouraud;
-    view([50, 25]);
-    grid on; box on;
-    set(gca, 'FontSize', 14);
-    xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 22);
-    ylabel('$l$', 'Interpreter', 'latex', 'FontSize', 22);
-    zlabel('$m_0$', 'Interpreter', 'latex', 'FontSize', 22);
-    title(sprintf('Ri=%.1f, \\omega=%.2f  (max \\lambda=%.4f at k=%.2f, l=%.3f, m_0=%.2f)', ...
-        Ri_val, omega_val, max_all, k_vec(ki), l_vec(li), m0_vec(m0i)), ...
-        'Interpreter', 'tex', 'FontSize', 13);
+        % --- output directory ---
+        base_dir = fullfile('Figures', 'Explore3D', sprintf('f_%.3f', f_val), ...
+            sprintf('Ri%.1f_omega%.2f', Ri_val, omega_val));
+        if eta > 0
+            out_dir = fullfile(base_dir, sprintf('eta_%.3f', eta));
+        else
+            out_dir = base_dir;
+        end
+        if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 
-    saveas(fig, fullfile(out_dir, 'isosurface.png'));
-    savefig(fig, fullfile(out_dir, 'isosurface.fig'));
-    close(fig);
+        % --- compute 3-D grid ---
+        data_path = fullfile(out_dir, 'lambda_3d.mat');
+        lambda_3d = floquet_scan_3d(p, k_vec, m0_vec, l_vec, n_steps, data_path);
 
-    % --- 2-D slice at l where max occurs ---
-    fig2 = figure('Visible', 'on', 'Units', 'inches', 'Position', [1 1 8 6]);
-    lambda_km = lambda_3d(:, :, li);
-    data = log10(lambda_km);
-    data(lambda_km <= 0) = -4;
-    data(data < -4) = -4;
-    imagesc(k_vec, m0_vec, data);
-    axis xy;
-    set(gca, 'FontSize', 14);
-    xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 22);
-    ylabel('$m_0$', 'Interpreter', 'latex', 'FontSize', 22);
-    ylim([0 1.5]);
-    colormap('jet');
-    clim([-4, max(-1, max(data(:)))]);
-    cb = colorbar;
-    cb.Label.Interpreter = 'latex';
-    cb.Label.String = '$\log_{10}(\lambda)$';
-    cb.Label.FontSize = 16;
-    title(sprintf('Ri=%.1f, \\omega=%.2f, l=%.4f  (\\lambda_{max}=%.4f)', ...
-        Ri_val, omega_val, l_vec(li), max_all), 'Interpreter', 'tex', 'FontSize', 14);
+        % --- analysis ---
+        [max_all, idx] = max(lambda_3d(:));
+        [m0i, ki, li] = ind2sub(size(lambda_3d), idx);
+        fprintf('  Max λ = %.6f  at k=%.4f, m0=%.4f, l=%.4f\n', ...
+            max_all, k_vec(ki), m0_vec(m0i), l_vec(li));
 
-    saveas(fig2, fullfile(out_dir, 'km_slice_at_max.png'));
-    savefig(fig2, fullfile(out_dir, 'km_slice_at_max.fig'));
-    close(fig2);
+        % Check if max is at edge of l-range
+        if li == 1
+            if f_val == 0
+                fprintf('  Max at l=0 (expected for f=0 — symmetric about l=0).\n');
+            else
+                fprintf('  ⚠ Max at l=%.4f (left edge — consider widening l range).\n', l_vec(li));
+            end
+        elseif li == n_l
+            fprintf('  ⚠ Max at l=%.4f (right edge — consider widening l range).\n', l_vec(li));
+        end
 
-    fprintf('  Saved to %s/\n', out_dir);
-end
+        % Check if max is at edge of k-range
+        if ki == 1 || ki == n_k
+            fprintf('  ⚠ Max at k-edge (k=%.4f) — consider widening k range.\n', k_vec(ki));
+        end
+
+        % --- 3-D isosurface ---
+        fprintf('  Rendering isosurface...\n');
+
+        [K_mg, L_mg, M0_mg] = ndgrid(k_vec, l_vec, m0_vec);
+        V = permute(lambda_3d, [2, 3, 1]);  % (n_k, n_l, n_m0) — matches ndgrid
+
+        iso_vals  = [0.20, 0.50, 0.85] * max_all;
+        colors    = {[0.2 0.4 1.0], [0.0 0.7 0.9], [1.0 0.7 0.1]};
+        alphas    = [0.15, 0.45, 0.85];
+
+        fig = figure('Visible', 'on', 'Units', 'inches', 'Position', [1 1 10 8]);
+        hold on;
+
+        for i = 1:3
+            if iso_vals(i) > 0
+                fv = isosurface(K_mg, L_mg, M0_mg, V, iso_vals(i));
+                pa = patch(fv);
+                pa.FaceColor = colors{i};
+                pa.EdgeColor = 'none';
+                pa.FaceAlpha = alphas(i);
+            end
+        end
+
+        camlight('headlight');
+        lighting gouraud;
+        view([50, 25]);
+        grid on; box on;
+        set(gca, 'FontSize', 14);
+        xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 22);
+        ylabel('$l$', 'Interpreter', 'latex', 'FontSize', 22);
+        zlabel('$m_0$', 'Interpreter', 'latex', 'FontSize', 22);
+        if eta > 0
+            title(sprintf('Ri=%.1f, \\omega=%.2f, \\eta=%.2f  (max \\lambda=%.4f at k=%.2f, l=%.3f, m_0=%.2f)', ...
+                Ri_val, omega_val, eta, max_all, k_vec(ki), l_vec(li), m0_vec(m0i)), ...
+                'Interpreter', 'tex', 'FontSize', 13);
+        else
+            title(sprintf('Ri=%.1f, \\omega=%.2f  (max \\lambda=%.4f at k=%.2f, l=%.3f, m_0=%.2f)', ...
+                Ri_val, omega_val, max_all, k_vec(ki), l_vec(li), m0_vec(m0i)), ...
+                'Interpreter', 'tex', 'FontSize', 13);
+        end
+
+        saveas(fig, fullfile(out_dir, 'isosurface.png'));
+        savefig(fig, fullfile(out_dir, 'isosurface.fig'));
+        close(fig);
+
+        % --- 2-D slice at l where max occurs ---
+        fig2 = figure('Visible', 'on', 'Units', 'inches', 'Position', [1 1 8 6]);
+        lambda_km = lambda_3d(:, :, li);
+        data = log10(lambda_km);
+        data(lambda_km <= 0) = -4;
+        data(data < -4) = -4;
+        imagesc(k_vec, m0_vec, data);
+        axis xy;
+        set(gca, 'FontSize', 14);
+        xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 22);
+        ylabel('$m_0$', 'Interpreter', 'latex', 'FontSize', 22);
+        ylim([0 1.5]);
+        colormap('jet');
+        clim([-4, max(-1, max(data(:)))]);
+        cb = colorbar;
+        cb.Label.Interpreter = 'latex';
+        cb.Label.String = '$\log_{10}(\lambda)$';
+        cb.Label.FontSize = 16;
+        if eta > 0
+            title(sprintf('Ri=%.1f, \\omega=%.2f, \\eta=%.2f, l=%.4f  (\\lambda_{max}=%.4f)', ...
+                Ri_val, omega_val, eta, l_vec(li), max_all), 'Interpreter', 'tex', 'FontSize', 14);
+        else
+            title(sprintf('Ri=%.1f, \\omega=%.2f, l=%.4f  (\\lambda_{max}=%.4f)', ...
+                Ri_val, omega_val, l_vec(li), max_all), 'Interpreter', 'tex', 'FontSize', 14);
+        end
+
+        saveas(fig2, fullfile(out_dir, 'km_slice_at_max.png'));
+        savefig(fig2, fullfile(out_dir, 'km_slice_at_max.fig'));
+        close(fig2);
+
+        fprintf('  Saved to %s/\n', out_dir);
+    end  % for ei (eta loop)
+end  % for ti (test_points loop)
 
 fprintf('\n===== Done =====\n');
